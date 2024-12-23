@@ -1,1 +1,30 @@
+Задача 1
+
+SELECT an_name,
+       an_price
+FROM Analysis a
+INNER JOIN Orders o
+    ON a.an_id = o.ord_an
+WHERE ord_date BETWEEN '2022-03-14' AND '2022-03-20'
+ORDER BY 1, 2
+
+Задача 2
+
+WITH min_tov as (
+    SELECT id_tov,
+           MIN(date_tt) as min_date
+    FROM DTT
+    GROUP BY id_tov
+    )
+
+SELECT id_tov
+FROM min_tov
+WHERE CURRENT_DATE - min_date <= INTERVAL '30 days';
+
+Задача 3
+
+SELECT country,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage
+FROM users
+GROUP BY country;
 
