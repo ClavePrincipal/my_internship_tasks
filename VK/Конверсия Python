@@ -1,1 +1,36 @@
+import pandas as pd
+df = pd.read_csv('table1.csv')
 
+df.dtypes
+#если у time тип данных не datetime64[ns]
+
+df['time'] = pd.to_datetime(df['time'])
+
+df['week'] = df['time'].dt.isocalendar().week
+
+# те, кто зарегистрировался
+reg=df[(df.eventname =='register') & (df.time>='2023-03-01')][['userid', 'week', 'eventname']]
+
+# те, кто скачал
+downl=df[(df.eventname =='download') & (df.time>='2023-03-01')][['userid', 'week', 'eventname']]
+downl
+
+# те, кто зарегистрировался и скачал в ту же неделю
+obshaya=pd.merge(reg, downl, how='left', on=['week', 'userid'])
+
+# их кол-во
+kol_reg=obshaya.groupby(['week', 'eventname_x'], as_index=False).nunique(['userid'])
+kol_reg=kol_reg[["week", "userid"]]
+
+kol_downl=obshaya.groupby(['week', 'eventname_y'], as_index=False).nunique(['userid'])
+kol_downl=kol_downl[['week', 'userid']]
+
+
+# их конверсия
+cr=pd.merge(kol_reg, kol_downl, how='left', on='week')
+cr['userid_y'] = cr['userid_y'].fillna(0)
+cr['CR']=round((cr['userid_y']/cr['userid_x']*100), 2)
+скачал и 
+cr=cr[['week', 'userid_x', 'CR']]
+cr.rename(columns={"userid_x": "users"}, inplace=True)
+cr
