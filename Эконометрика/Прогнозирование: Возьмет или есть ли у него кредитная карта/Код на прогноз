@@ -1,4 +1,4 @@
-# Не показывать FutureWarnings
+# Установка библиотек
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import numpy as np
@@ -18,20 +18,104 @@ df
 #df['Family'], df['CCAvg'], df['Education'], 
 #df['Mortgage'], df['Personal_Loan'], 
 #df['Securities_Account'], 
-#df['CD_Account'] - Есть статистически значимые различия
+#df['CD_Account'] - Есть статистически значимые различия (только у него)
 #df['Online'], 
 #df['CreditCard']])
 
 import pandas as pd
 from scipy.stats import chi2_contingency
 
-
 contingency_table = pd.crosstab(df['CD_Account'], df['CreditCard'])
 
-# Тест хи-квадрат
 chi2, p, _, _ = chi2_contingency([contingency_table])
 print(f"p-value: {p}")
 if p <= 0.05:
     print("Есть статистически значимые различия.")
 else:
     print("Нет статистически значимых различий.")
+
+#Строим модель 1
+mod = smf.logit(formula='CreditCard~Age+Experience+Income+Family+CCAvg+Education+Mortgage+Personal_Loan+Securities_Account+CD_Account+Online', data=df)
+res = mod.fit(cov_type='HC3')
+print(res.summary())
+
+# Logit Regression Results                           
+#==============================================================================
+#Dep. Variable:             CreditCard   No. Observations:                 5000
+ #Model:                          Logit   Df Residuals:                     4988
+ #Method:                           MLE   Df Model:                           11
+ #Date:                Mon, 23 Dec 2024   Pseudo R-squ.:                 0.08430
+ #Time:                        23:50:55   Log-Likelihood:                -2773.2
+ #converged:                       True   LL-Null:                       -3028.5
+ #Covariance Type:                  HC3   LLR p-value:                1.763e-102
+ #======================================================================================
+ #                        coef    std err          z      P>|z|      [0.025      0.975]
+ #--------------------------------------------------------------------------------------
+ #Intercept             -0.6072      0.694     -0.875      0.382      -1.968       0.754
+ #Age                   -0.0051      0.027     -0.186      0.852      -0.059       0.049
+ #Experience             0.0062      0.027      0.225      0.822      -0.047       0.060
+ #Income                 0.0002      0.001      0.206      0.837      -0.002       0.002
+ #Family                 0.0323      0.029      1.102      0.270      -0.025       0.090
+ #CCAvg                 -0.0235      0.025     -0.926      0.355      -0.073       0.026
+ #Education             -0.0221      0.043     -0.516      0.606      -0.106       0.062
+ #Mortgage              -0.0007      0.000     -1.964      0.050      -0.001   -1.21e-06
+ #Personal_Loan         -1.0410      0.173     -6.013      0.000      -1.380      -0.702
+ #Securities_Account    -1.3057      0.155     -8.426      0.000      -1.609      -1.002
+ #CD_Account             3.6742      0.177     20.762      0.000       3.327       4.021
+ #Online                -0.2864      0.067     -4.301      0.000      -0.417      -0.156
+ #======================================================================================
+# В модели значимы только Mortgage, Personal_Loan, Securities_Account, CD_Account, Online (p-value<=0.05)
+# значит отдельно от других факторов действительно важен CD_Account (по многофакторному хи-квадрат), 
+# НО ПО ФАКТУ ВАЖНЫ ВСЕ УПОМЯНУТЫЕ, ТАК КАК ВЛИЯНИЕ ИДЕТ В СВЯЗКЕ
+
+# исправляем модель
+mod_remake = smf.logit(formula='CreditCard~Mortgage+Personal_Loan+Securities_Account+CD_Account+Online', data=df1)
+res_remake = mod_remake.fit(cov_type='HC3')
+print(res_remake.summary())
+
+new_data = pd.DataFrame({'Mortgage':[70, 40, 100], 
+                         'Personal_Loan':[0, 1, 0], 
+                         'Securities_Account': [1, 0, 0], 
+                         'CD_Account': [0, 1, 1],
+                         'Online': [0, 1, 0]})
+res_remake.predict(exog=new_data, transform=True).round(3)
+
+#Вопрос 1: правильно ли я вообще сделал задание, 
+#и находятся ли показатели Pseudo R-squ, Log-Likelihood, LL-Null, LLR p-value на должном уровне 
+#или можно/нужно лучше?
+#Вопрос 2 (возможно Вы сможете мне помочь: 
+#правильно ли я настраиваю автоматический вывод прогноза для моей модели c SQL-сервера (Microsoft SQL Server)
+
+
+
+#КОД
+import pandas as pd
+import pyodbc
+import time  # Для автоматического обновления с интервалом
+
+# Настройки подключения
+server = 'your_server_name'
+database = 'your_database_name'
+username = 'your_username'
+password = 'your_password'
+
+# Формирование строки подключения
+connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+
+# Функция для загрузки данных
+def load_data_from_sql(query):
+    with pyodbc.connect(connection_string) as conn:
+        return pd.read_sql_query(query, conn)
+
+# SQL-запрос на вывод всех данных (можно лишь определенных конкретно для моей модели через Where)
+query = "SELECT * FROM your_table_name"
+
+# Автоматическое обновление данных каждые N секунд
+update_interval = 86400  # Интервал обновления в секундах (ровно 1 день)
+
+while True:
+    df = load_data_from_sql(query)
+    print(f"Данные обновлены: {pd.Timestamp.now()}")
+    time.sleep(update_interval)  # Ожидание перед следующим запросом
+#В моем понимании настраивается загрузка данных в сервер, а затем они удаляются 
+#через определенный промежуток времени, например, 2-3 дня, но как дела обстоят на самом деле я не знаю
