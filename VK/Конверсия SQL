@@ -1,1 +1,27 @@
+with reg as 
 
+(select distinct userId,  DATE_TRUNC('week', time) as weeks
+from table1 
+where eventName ='register' 
+group by userId, weeks),
+
+buy as 
+
+(select distinct userId,  DATE_TRUNC('week', time) as weeks, product 
+from table1 
+where eventName ='buy' 
+group by userId, weeks, product)
+
+select week, product, rating from (
+
+select week, product, dense_rank() over(order by count(product) desc) as rating from (
+
+select r.weeks as week, count(distinct r.userId) as users, 
+count(distinct b.userId)*100/count(distinct r.userId) as CR,
+dense_rank() over(order by count(distinct b.userId)*100/count(distinct r.userId) desc) as cr_rank 
+from reg r left join buy b 
+on r.userId=b.userId and r.weeks=b.weeks
+group by r.weeks) as a 
+inner join buy b on a.week=b.weeks
+where cr_rank=1
+group by a.week, product ) as rank_prod where rating<=3
