@@ -18,7 +18,7 @@ select week, product, dense_rank() over(order by count(product) desc) as rating 
 
 select r.weeks as week, count(distinct r.userId) as users, 
 count(distinct b.userId)*100/count(distinct r.userId) as CR,
-dense_rank() over(order by count(distinct b.userId)*100/count(distinct r.userId) desc) as cr_rank 
+row_number() over(order by count(distinct b.userId)*100/count(distinct r.userId) desc) as cr_rank 
 from reg r left join buy b 
 on r.userId=b.userId and r.weeks=b.weeks
 group by r.weeks) as a 
