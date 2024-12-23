@@ -1,0 +1,38 @@
+# Не показывать FutureWarnings
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from statsmodels.tools import add_constant
+from statsmodels.iolib.summary2 import summary_col, summary_params
+
+#Чтение файла
+df = pd.read_csv('Bank_Personal_Loan_Modelling.csv.xls')
+df
+
+
+#Многофакторный хи-квадрат
+
+# [df['Age'], df['Experience'], df['Income'], 
+#df['Family'], df['CCAvg'], df['Education'], 
+#df['Mortgage'], df['Personal_Loan'], 
+#df['Securities_Account'], 
+#df['CD_Account'] - Есть статистически значимые различия
+#df['Online'], 
+#df['CreditCard']])
+
+import pandas as pd
+from scipy.stats import chi2_contingency
+
+
+contingency_table = pd.crosstab(df['CD_Account'], df['CreditCard'])
+
+# Тест хи-квадрат
+chi2, p, _, _ = chi2_contingency([contingency_table])
+print(f"p-value: {p}")
+if p <= 0.05:
+    print("Есть статистически значимые различия.")
+else:
+    print("Нет статистически значимых различий.")
