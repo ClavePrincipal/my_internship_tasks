@@ -12,7 +12,6 @@ from statsmodels.iolib.summary2 import summary_col, summary_params
 df = pd.read_csv('Bank_Personal_Loan_Modelling.csv.xls')
 df
 
-
 #Многофакторный хи-квадрат
 
 # [df['Age'], df['Experience'], df['Income'], 
