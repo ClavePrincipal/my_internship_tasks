@@ -80,43 +80,6 @@ new_data = pd.DataFrame({'Mortgage':[70, 40, 100],
                          'Online': [0, 1, 0]})
 res_remake.predict(exog=new_data, transform=True).round(3)
 
-#Вопрос 1: правильно ли я вообще сделал задание, 
-#и находятся ли показатели Pseudo R-squ, Log-Likelihood, LL-Null, LLR p-value на должном уровне 
-#или можно/нужно лучше?
-#Вопрос 2 (возможно Вы сможете мне помочь): 
-#правильно ли я настраиваю автоматический вывод прогноза для моей модели c SQL-сервера (зд. Microsoft SQL Server)
 
 
 
-# КОД ДЛЯ ВЫВОДА:
-
-import pandas as pd
-import pyodbc
-import time  # Для автоматического обновления с интервалом
-
-# Настройки подключения
-server = 'your_server_name'
-database = 'your_database_name'
-username = 'your_username'
-password = 'your_password'
-
-# Формирование строки подключения
-connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
-
-# Функция для загрузки данных
-def load_data_from_sql(query):
-    with pyodbc.connect(connection_string) as conn:
-        return pd.read_sql_query(query, conn)
-
-# SQL-запрос на вывод всех данных (можно лишь определенных конкретно для моей модели через Where)
-query = "SELECT * FROM your_table_name"
-
-# Автоматическое обновление данных каждые N секунд
-update_interval = 86400  # Интервал обновления в секундах (ровно 1 день)
-
-while True:
-    df = load_data_from_sql(query)
-    print(f"Данные обновлены: {pd.Timestamp.now()}")
-    time.sleep(update_interval)  # Ожидание перед следующим запросом
-#В моем понимании настраивается загрузка данных в сервер, а затем они удаляются 
-#через определенный промежуток времени, например, 2-3 дня, но как дела обстоят на самом деле я не знаю
