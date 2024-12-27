@@ -1,0 +1,75 @@
+Задание: вывести id клиентов, сумму транзакции, id, номер телефона и название департамента работников, 
+которым клиенты переводили N-сумму средств за, предположительно, увеличение лимита кредитных карт. 
+Цель – доказать или опровергнуть существование схем по увеличению лимита в обход официального решения банка.
+Запрос:
+
+
+WITH not_emp as (
+SELECT c.client_id
+FROM 
+clients c
+WHERE NOT EXISTS (
+ SELECT 1
+ FROM 
+ employees e
+ WHERE e.client_id = c.client_id
+),
+last_date as (
+ SELECT client_id, credit_card_id
+        MAX(CASE WHEN change_type = 'reduction' THEN change_date END) AS last_reduction,
+        MAX(CASE WHEN change_type = 'restoration' THEN change_date END) AS last_restoration
+ FROM Credit_card
+ GROUP BY client_id, credit_card_id
+)
+
+SELECT 
+not_emp.client_id, 
+transaction_sum, 
+employee_id, 
+employee_mobile_number,
+department_name, 
+count(not_emp.client_id) over(partition by employee_id, department_name) as per_employee
+FROM
+last_date l
+INNER JOIN
+not_emp 
+ON not_emp.client_id=l.client_id
+INNER JOIN 
+Transaction t
+ON
+t.sender = not_emp.client_id
+INNER JOIN
+Employee e
+ON
+t.receiver = e.client_id
+WHERE
+last_restoration - last_reduction  <= INTERVAL ‘7 days'
+AND
+t.transaction_date BETWEEN '2024-07-26’ AND '2024-12-25’
+
+
+Примечание: 
+not_emp.client_id - клиент, не являющийся сотрудником банка
+transaction_sum - сумма транзакции
+employee_id – id работника
+employee_mobile_number – номер телефона сотрудника
+department_name – департамент, в котором работает сотрудник
+per_employee – количество клиентов, которые переводили деньги конкретному сотруднику, у этого самого сотрудника
+last_reduction - дата последнего снижения лимита
+last_restoration - дата последнего возвращения лимита
+
+Почему t.transaction_date BETWEEN '2024-07-26’ AND '2024-12-25’? 26 июля 2024 года это дата первого повышения ключевой ставки спустя 4 заседания ЦБ, на которых ставка сохранялась на уровне 16%. Именно тогда начались разговоры и предположения об угрозе повышения уровня инфляции.
+Подробнее на РБК: 
+15 декабря 2023 года повышение на 100 б.п. — 16%;
+16 февраля 2024 года сохранена — 16%.
+22 марта 2024 года сохранена — 16%;
+26 апреля 2024 года сохранена — 16%;
+7 июня 2024 года сохранена — 16%;
+26 июля 2024 года повышение на 200 б.п. — до 18%;
+13 сентября 2024 года повышение на 100 б.п. — до 19%;
+25 октября 2024 года повышение на 200 б.п. — до 21%.
+20 декабря 2024 года сохранена — 21%.
+
+URL:
+https://www.rbc.ru/quote/news/article/5e3a99f59a79471fa29eccae?from=copy
+
