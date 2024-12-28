@@ -80,6 +80,18 @@ new_data = pd.DataFrame({'Mortgage':[70, 40, 100],
                          'Online': [0, 1, 0]})
 res_remake.predict(exog=new_data, transform=True).round(3)
 
+# значима ли регрессия
+# Тестовая статистика LR-теста и её P-значение с округленим
+llr = res_remake.llr.round(3), res.llr_pvalue.round(3)
+sign_level = 0.05 # уровень значимости
+chi = chi2.ppf(q=1-sign_level, df=res.df_model).round(3) 
+if llr[0]>chi:
+    print("Регрессия значима")
+else:
+    print("Регрессия не значима")
 
+marge_res = res_remake.get_margeff(at='mean')
+
+marge_res.summary()
 
 
