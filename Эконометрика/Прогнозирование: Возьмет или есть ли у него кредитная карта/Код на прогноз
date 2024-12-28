@@ -90,6 +90,94 @@ if llr[0]>chi:
 else:
     print("Регрессия не значима")
 
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
+
+# Загружаем данные
+X = df[['Mortgage', 'Personal_Loan', 'Securities_Account', 'CD_Account', 'Online']]
+
+# Добавляем столбец константы для модели
+X = add_constant(X)
+
+# Рассчитываем VIF для каждого признака
+vif_data = pd.DataFrame()
+vif_data["feature"] = X.columns
+vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+
+# Выводим результат
+print(vif_data)
+# VIF < 5 для всех факторов - значит мультиколлинеарности нет(избыточности факторов)
+
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score, roc_curve
+import matplotlib.pyplot as plt
+
+# Разделяем данные на обучающую и тестовую выборки
+X = df[['Mortgage', 'Personal_Loan', 'Securities_Account', 'CD_Account', 'Online']]
+y = df['CreditCard']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Строим логистическую регрессию
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Прогнозируем на тестовых данных
+y_pred = model.predict(X_test)
+y_pred_prob = model.predict_proba(X_test)[:, 1]
+
+# Оценка метрик
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy}')
+print('Classification Report:')
+print(classification_report(y_test, y_pred))
+
+# ROC-AUC
+roc_auc = roc_auc_score(y_test, y_pred_prob)
+print(f'ROC-AUC: {roc_auc}')
+
+# Построение ROC-кривой
+fpr, tpr, _ = roc_curve(y_test, y_pred_prob)
+plt.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
+plt.plot([0, 1], [0, 1], linestyle='--', label='Random Classifier')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.legend()
+plt.show()
+
+#ROC-кривая модели всегда находится выше 
+# линии random classifier - это хорошо 
+#(означает, что модель выше случайного уровня и, следовательно, 
+#имеет предсказательную силу
+# Accuracy: 0.752
+# ROC-AUC: 0.5951600108350746
+
+# Cравнивание модели со всеми признаками и моей модели с нужными признаками
+
+
+# Полная модель (с всеми признаками)
+X_full = df[['Mortgage', 'Personal_Loan', 'Securities_Account', 'CD_Account', 'Online', 'Experience', 'Income', 'Family', 'Education']]  # Все признаки
+X_train_full, X_test_full, y_train_full, y_test_full = train_test_split(X_full, y, test_size=0.2, random_state=42)
+
+model_full = LogisticRegression()
+model_full.fit(X_train_full, y_train_full)
+y_pred_full = model_full.predict(X_test_full)
+
+# Метрики для полной модели
+accuracy_full = accuracy_score(y_test_full, y_pred_full)
+roc_auc_full = roc_auc_score(y_test_full, model_full.predict_proba(X_test_full)[:, 1])
+
+print(f'Full Model Accuracy: {accuracy_full}')
+print(f'Full Model ROC-AUC: {roc_auc_full}')
+
+#Full Model Accuracy: 0.752
+#Full Model ROC-AUC: 0.6016223589505456
+#Accuracy of my model: 0.752
+#ROC-AUC of my model: 0.5951600108350746 - существенных различий нет
+
 marge_res = res_remake.get_margeff(at='mean')
 
 marge_res.summary()
